@@ -1,0 +1,98 @@
+
+<html>
+<head>
+    <title>Flapper News</title>
+    <link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.3.10/angular.min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/angular-ui-router/0.2.10/angular-ui-router.js"></script>
+    <script src="/javascripts/angularApp.js"></script>
+    <style> .glyphicon-thumbs-up { cursor:pointer } </style>
+</head>
+<body ng-app="flapperNews">
+    <div class="row">
+        <div class="col-md-6 col-md-offset-3">
+            <ui-view></ui-view>
+        </div>
+    </div>
+
+    <!--Start Home State Template-->
+    <script type="text/ng-template" id="/home.html">
+        <div class="page-header">
+            <h1>Flapper News</h1>
+        </div>
+        <!--Start Show Posts-->
+        <div ng-repeat="post in posts | orderBy:'-likes'">
+            <span class="glyphicon glyphicon-thumbs-up" ng-click="incLikes(post)"></span>
+            {{post.likes}}
+            <span style="font-size:20px; margin-left:10px;">
+                <!--show post.title if there is a link-->
+                <a ng-show="post.link" href="{{post.link}}">
+                    {{post.title}}
+                </a>
+                <!--hide post.title if there is a link-->
+                <span ng-hide="post.link">
+                    {{post.title}}
+                </span>
+                <span>
+                    <a href="#/posts/{{post._id}}">Comments</a>
+                </span>
+            </span>
+        </div>
+        <!--End Show Posts-->
+
+        <!-- Start Add Post Form-->
+        <form ng-submit="addPost()" style="margin-top:30px;">
+            <h3>Add a new post</h3>
+
+            <div class="form-group">
+                <input type="text" class="form-control" placeholder="Title" ng-model="title">
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-control" placeholder="Link" ng-model="link">
+            </div>
+            <button type="submit" class="btn btn-primary">Post</button>
+        </form>
+        <!-- End Add Post Form-->
+    </script>
+    <!--End Home State-->
+
+    <!--Start Post State Template-->
+    <script type="text/ng-template" id="/posts.html">
+        <div class="page-header">
+            <h3>
+                <!--Show post.title if there is a link-->
+                <a ng-show="post.link" href="{{post.link}}">
+                    {{post.title}}
+                </a>
+                <!--Hide post.title if there is a link-->
+                <span ng-hide="post.link">
+                    {{post.title}}
+                </span>
+            </h3>
+        </div>
+
+        <div ng-repeat="comment in post.comments | orderBy:'-likes'">
+            <span class="glyphicon glyphicon-thumbs-up" ng-click="incLikes(comment)"></span>
+                {{comment.likes}} - by {{comment.author}}
+            <span style="font-size:20px; margin-left:10px;">
+                {{comment.body}}
+            </span>
+        </div>
+        <!-- Start Add Comment Form-->
+        <form ng-submit="addComment()" style="margin-top:30px;">
+            <h3>Add a new comment</h3>
+
+            <div class="form-group">
+                <input type="text" class="form-control" placeholder="Comment" ng-model="body">
+            </div>
+            <button type="submit" class="btn btn-primary">Post</button>
+        </form>
+        <!-- End Add Comment Form-->
+    </script>
+    <!--End Post State Template-->
+
+
+
+</body>
+</html>
