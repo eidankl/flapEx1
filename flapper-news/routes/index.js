@@ -1,17 +1,67 @@
 var express = require('express');
 var router = express.Router();
+var jwt = require('express-jwt');
+
+
+//init auth middleware for authentication jwt tokens
+var auth = jwt({secret: 'SECRET', userProperty: 'payload'});
+
 
 /* GET home page. */
 router.get('/', function(req, res) {
   res.render('index', { title: 'Express' });
 });
 
-//add dependencies comment module, post module and mongoose for access to db
+//add dependencies Comment module, Post module, User module, mongoose and passport for access to db
 var mongoose = require('mongoose');
+var passport = require('passport');
+
 var Post = mongoose.model('Post');
 var Comment = mongoose.model('Comment');
+var User = mongoose.model('User');
+
+
+/* /register route that creates a user given a username and password*/
+router.post('/register', function(req, res, next){
+  debugger;
+  if(!req.body.username || !req.body.password){
+    return res.status(400).json({message: 'Please fill out all fields'});
+  }
+
+  var user = new User();
+  //user.password = req.body.password;
+  user.username = req.body.username;
+  user.setPassword(req.body.password);
+  user.save(function (err){
+    if(err){ return next(err); }
+
+    return res.json({token: user.generateJWT()})
+  });
+});
+
+/* /login route that authenticates the user and returns a token to the client */
+router.post('/login', function(req, res, next){
+  if(!req.body.username || !req.body.password){
+    return res.status(400).json({message: 'Please fill out all fields'});
+  }
+
+  passport.authenticate('local', function(err, user, info){
+    if(err){ return next(err); }
+
+    if(user){
+      //If authentication is successful we want to return a new JWT token to the client
+      //just like our register route does with expiration date for 60 days.
+      return res.json({token: user.generateJWT()});
+    } else {
+      return res.status(401).json(info);
+    }
+  })(req, res, next);
+});
 
 /* get route for all posts - view all posts = GET /posts - return a list of posts and associated metadata*/
+//we want the user will be logged in so we need to pass the auth as an argument,
+// because it the middleware insure the jwt token valid
+//Require authentication for creating a post
 router.get('/posts', function(req, res, next) {
   //find() return all the data (posts) in db
   Post.find(function(err, posts){
@@ -24,9 +74,11 @@ router.get('/posts', function(req, res, next) {
 });
 
 /* POST request to the server - posting data to the server - Add a new post(posting post) = POST /posts - create a new post*/
-router.post('/posts/', function(req, res, next) {
+router.post('/posts', auth, function(req, res, next) {
   //create a new post object in memory before saving it to the database
   var post = new Post(req.body);
+  //Set the author field when creating posts
+  post.author = req.payload.username;
   //save the post to db
   post.save(function(err, post){
     if(err){
@@ -106,7 +158,8 @@ router.get('/posts/:post', function (req, res) {
 
 /*upLikes a post (update the db) = PUT /posts/:id/like - like a post, notice we use the post ID in the URL
 * route for upLikes from PostSchema*/
-router.put('/posts/:post/upLikes', function(req, res, next){
+//Require authentication for upLikes
+router.put('/posts/:post/upLikes', auth, function(req, res, next){
   //like the request post
   req.post.upLikes(function(err, post){
     if(err){
@@ -119,7 +172,8 @@ router.put('/posts/:post/upLikes', function(req, res, next){
 
 /*upLikes a comment =  PUT /posts/:id/comments/:id/like - like a comment
 * route for upLikes from CommentsSchema*/
-router.put('/posts/:post/comments/:comment/upLikes', function(req, res, next){
+//Require Authentication for upvoting comments
+router.put('/posts/:post/comments/:comment/upLikes', auth, function(req, res, next){
   //like the request post
   req.comment.upLikes(function(err, comment){
     if(err){
@@ -131,13 +185,15 @@ router.put('/posts/:post/comments/:comment/upLikes', function(req, res, next){
 });
 
 
-/*create a new comment =  POST /posts/:id/comments - add a new comment to a post by ID
-* */
+/*create a new comment =  POST /posts/:id/comments - add a new comment to a post by ID*/
 //route for a comments on a given post, the ability to create m comment
-router.post('/posts/:post/comments', function(req, res, next){
+//Require authentication for commenting and set the author for comments
+router.post('/posts/:post/comments', auth, function(req, res, next){
   //create a comment variable that create new mongoose model from our request
   var comment = new Comment(req.body);
   comment.post = req.post;
+  //Set the author field when creating comments
+  comment.author = req.payload.username;
   //save the comment
   comment.save(function(err,comment){
     if(err){
@@ -155,6 +211,9 @@ router.post('/posts/:post/comments', function(req, res, next){
     });
   });
 });
+
+
+
 
 
 
